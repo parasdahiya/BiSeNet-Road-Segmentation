@@ -6,4 +6,4 @@ BiSeNet is particularly useful for segmenting roads in case of unstructured scen
 ![Original Image](/images/898955_leftImg8bit.png)
 ![Segmented Image](/images/898955_leftImg8bit_mask.png)
 ![Original Image](/images/996177_leftImg8bit.png)
-![Segmented Image](/images/996177leftImg8bit_mask.png)
+![Segmented Image](/images/996177_leftImg8bit_mask.png)
