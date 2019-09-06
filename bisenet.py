@@ -1,3 +1,5 @@
+import os
+import tensorflow as tf
 from tensorflow.contrib import slim
 from tensorflow.contrib.slim.nets import resnet_v2
 from tensorflow.keras import layers
@@ -55,12 +57,12 @@ def create_context_path(input_im):
 		layer_context2 = layers.UpSampling2D(size = 2, interpolation = 'bilinear')(layer_arm16)
 		context_output = tf.concat([layer_context1, layer_context2], axis = -1)
 
-		return context_output
+		return context_output, init_fn
 
 
 def create_spatial_path(input_im):
 
-	layer_spatial = layers.Conv2D(input_shape=(None, 1120, 256, 3), filters=64, kernel_size=[3,3], strides=2, padding='same', activation='relu')(input_im)
+	layer_spatial = layers.Conv2D(input_shape=(None, None, None, 3), filters=64, kernel_size=[3,3], strides=2, padding='same', activation='relu')(input_im)
 	layer_spatial = layers.Conv2D(filters=128, kernel_size=[3,3], strides=2, padding='same', activation='relu')(layer_spatial)
 	spatial_output = layers.Conv2D(filters=256, kernel_size=[3,3], strides=2, padding='same', activation='relu')(layer_spatial)
 
@@ -76,12 +78,12 @@ def create_bisenet():
 	input_im = tf.placeholder(shape = (None, None, None, 3), dtype = tf.float32, name='input_im')
 	gt_im = tf.placeholder(shape = (None, None, None, 2), dtype = tf.float32, name='gt_im')
 
-	context_output = create_context_path(input_im)
 	spatial_output = create_spatial_path(input_im)
+	context_output, init_fn = create_context_path(input_im)
 	ffm_output = ffm_module(spatial_output, context_output, num_classes)
 
 	## Final Upsampling by a factor of 8
 	output_label = layers.UpSampling2D(size = 8, interpolation = 'bilinear')(ffm_output)
 	output_label = layers.Conv2D(filters = num_classes, kernel_size = [1,1], activation = None)(output_label)
 
-	return output_label, gt_im
+	return output_label, input_im, gt_im, init_fn
