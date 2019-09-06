@@ -16,29 +16,29 @@ def arm_module(layer, n_filter_maps):
 
 
 def ffm_module(spatial_layer, context_layer, num_classes):
-    '''
-    Fuses context layer with spatial layer
-    '''
+	'''
+	Fuses context layer with spatial layer
+	'''
 	input_features = tf.concat([spatial_layer, context_layer], axis = -1)
-  net = layers.Conv2D(filters = num_classes, kernel_size = [3,3], padding = 'same', activation = 'relu')(input_features)
-  net = layers.BatchNormalization()(net)
+	net = layers.Conv2D(filters = num_classes, kernel_size = [3,3], padding = 'same', activation = 'relu')(input_features)
+	net = layers.BatchNormalization()(net)
   
-  net_vector = tf.reduce_mean(net, axis = [1,2], keepdims = True)
+	net_vector = tf.reduce_mean(net, axis = [1,2], keepdims = True)
   
   # First 1x1 convolution uses 16 filters
-  net_vector = layers.Conv2D(filters = 16, kernel_size = [1,1], padding = 'same', activation = 'relu')(net_vector)
-  net_vector = layers.Conv2D(filters = num_classes, kernel_size = [1,1], padding = 'same')(net_vector)
-  net_vector = layers.Activation('sigmoid')(net_vector)
+	net_vector = layers.Conv2D(filters = 16, kernel_size = [1,1], padding = 'same', activation = 'relu')(net_vector)
+	net_vector = layers.Conv2D(filters = num_classes, kernel_size = [1,1], padding = 'same')(net_vector)
+	net_vector = layers.Activation('sigmoid')(net_vector)
+
+	net_scaled = tf.multiply(net, net_vector)
+	net = tf.add(net, net_scaled)
   
-  net_scaled = tf.multiply(net, net_vector)
-  net = tf.add(net, net_scaled)
-  
-  return net
+	return net
 
 
 def create_context_path(input_im):
 
-  with slim.arg_scope(resnet_v2.resnet_arg_scope()):
+	with slim.arg_scope(resnet_v2.resnet_arg_scope()):
 		last_layer, end_points = resnet_v2.resnet_v2_101(input_im, is_training=True, scope='resnet_v2_101', global_pool = False)
 		frontend_scope='resnet_v2_101'
 		init_fn = slim.assign_from_checkpoint_fn(model_path=os.path.join('models', 'resnet_v2_101.ckpt'), var_list=slim.get_model_variables('resnet_v2_101'), ignore_missing_vars=True)
@@ -78,7 +78,7 @@ def create_bisenet():
 
 	context_output = create_context_path(input_im)
 	spatial_output = create_spatial_path(input_im)
-	ffm_output = ffm_module(spatial_layer, context_layer, num_classes)
+	ffm_output = ffm_module(spatial_output, context_output, num_classes)
 
 	## Final Upsampling by a factor of 8
 	output_label = layers.UpSampling2D(size = 8, interpolation = 'bilinear')(ffm_output)
